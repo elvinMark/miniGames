@@ -1,0 +1,30 @@
+<html>
+  <head>
+    <title>My eType Game</title>
+    <script src="etype.js"></script>
+  </head>
+  <body>
+    <canvas width="500" height="500" id="mycanvas" style="border: solid 2px;"></canvas>
+    <script>
+      var g = new mygame(500,500);
+      var c = document.getElementById("mycanvas");
+      var ctx = c.getContext("2d");
+      var i = 0;
+      while(i<10){
+	       g.add(new myword());
+	       i+=1;
+	      }
+      ctx.font = "15px Arial";
+      var blit = function(){
+      ctx.clearRect(0,0,500,500);
+      g.draw(ctx);
+      g.update();
+      }
+      var onKeyPressed = function(event){
+      g.keyPressed(event.key);
+      }
+      document.addEventListener('keydown',onKeyPressed);
+      window.setInterval(blit,60);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Detroying Balls</title>
+	<script type="text/javascript" src="destroying.js"></script>
+</head>
+<body onkeydown="keyDown(event)" onkeyup="keyUp(event)">
+	<canvas width="500" height="500" id="mycanvas" style="border:solid 2px;" onmousemove="mouseMove(event)"></canvas>
+	<script type="text/javascript">
+		var canvas = document.getElementById("mycanvas");
+		var ctx = canvas.getContext("2d");
+		setSize(500,500);
+		setMargin(0,0);
+
+		var g = new EVector(0,0.1);
+
+		var car = new EBlock(1,new EVector(400,500),50,20,"#FF0000");
+		var left = new EVector(-2,0);
+		var right = new EVector(2,0);
+		var bullets = [];
+		var balls = initGame(5);
+		var flagCollision;
+
+		var loose = false;
+
+		var update = function(){
+			if(!loose){
+				clearScreen(ctx);
+				car.update();
+				car.draw(ctx);
+
+				for(var i in balls){
+					balls[i].applyAcc(g);
+					balls[i].update();
+					balls[i].draw(ctx);
+					balls[i].drawType(ctx);
+				}
+
+				for(var i in bullets){
+					bullets[i].update();
+					bullets[i].draw(ctx);
+					if(bullets[i].hitRoof())
+						bullets.splice(i,1);
+				}
+
+				flagCollision = false;
+				for(var i in bullets){
+					for(var j in balls){
+						if(isColliding(bullets[i],balls[j])){
+							if(!balls[j].destroy()){
+								var tmp = balls[j].split();
+								balls.push(tmp[0]);
+								balls.push(tmp[1]);
+							}
+							bullets.splice(i,1);
+							balls.splice(j,1);
+							flagCollision = true;
+							break;
+						}
+					}
+					if(flagCollision)
+						break;
+				}
+				for(var i in balls){
+					if(balls[i].pos.dist(car.pos) <= balls[i].radius || Math.sqrt((balls[i].pos.x - car.pos.x-car.width)**2 + (balls[i].pos.y - car.pos.y)**2)<=balls[i].radius){
+						loose = true;
+						ctx.font = "30px Arial";
+						ctx.fillStyle = "#000000";
+						ctx.fillText("GAME OVER",200,CANVAS_HEIGHT/2);
+						break;
+					}
+				}
+				if(balls.length == 0){
+					loose = true;
+					ctx.font = "30px Arial";
+					ctx.fillStyle = "#000000";
+					ctx.fillText("YOU WIN!",200,CANVAS_HEIGHT/2);
+				}	
+			}
+		};
+		var mouseMove = function(e){
+			console.log("sfd");
+		};
+		var keyDown = function(e){
+			switch(e.key){
+				case " ":
+				bullets.push(car.shoot());
+				break;
+				case "ArrowLeft":
+				car.applyAcc(left);
+				break;
+				case "ArrowRight":
+				car.applyAcc(right);
+				break;
+				default:
+				break;
+			}
+		};
+		var keyUp = function(e){
+			car.setAcc(0,0);
+		};
+		window.setInterval(update,20);
+	</script>
+</body>
+</html>

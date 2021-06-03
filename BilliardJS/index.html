@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Billiard</title>
+	<script type="text/javascript" src="billiard.js"></script>
+</head>
+<body>
+	<canvas width="600" height="700" id="mycanvas" style="border: solid 2px;" onmousedown="mouseDown(event)" onmousemove="mouseMove(event)" onmouseup="mouseUp(event)"></canvas>
+	<script>
+		setSize(600,700);
+		var ctx = document.getElementById("mycanvas").getContext("2d");
+		var balls = createBalls();
+		var initial = new EVector(0,0);
+		var final = new EVector(0,0);
+		var drag = false;
+		var selected = 0;
+		var friction = 0.8;
+		var counter = 0;
+		var power;
+		var blank = new ball(1,new EVector(CANVAS_WIDTH/2,MARGIN_Y + CANVAS_HEIGHT/10),12,"#FFFFFF");
+		balls.push(blank);
+		var holes = createHoles();
+
+		var calculate_kinetic = function(){
+			var s = 0;
+			for(var i in balls){
+				s += balls[i].kinetic_energy();
+			}
+			return s;
+		};
+		var calculate_momentum = function(){
+			var p = new EVector(0,0);
+			for(var i in balls){
+				p.add(balls[i].momentum());
+			}
+			return p;
+		};
+		var flag;
+		var index;
+		var update = function(){
+			clearScreen(ctx);
+			drawTable(ctx);
+			for(var i in balls)
+				balls[i].update()
+			for(var i in balls)
+				balls[i].draw(ctx);
+			for(var i in holes)
+				holes[i].draw(ctx);
+			for(var i = 0;i<balls.length-1;i++){
+				for(var j = i+1;j<balls.length;j++)
+					collide(balls[i],balls[j]);
+			}
+			flag = false;
+			index = 0;
+			for(var i in holes){
+				for(var j in balls){
+					if(isInHole(balls[j],holes[i])){
+						index = j;
+						flag = true;
+						break;
+					}
+				}
+				if(flag){
+					balls.splice(index,1);
+					break;
+				}
+			}
+			if(counter/50 >= 1){
+				for(var i in balls){
+					balls[i].vel.times_scalar(friction);
+					if(balls[i].vel.mag() < 0.1)
+						balls[i].vel.set(0,0);
+				}	
+				counter = 0;
+			}
+			counter++;
+			if(drag){
+				drawPower(ctx,power);
+				drawArrow(ctx,initial,new EVector(2*initial.x - final.x,2*initial.y - final.y));
+			}
+		};
+		var mouseDown = function(e){
+			initial.set(e.offsetX,e.offsetY);
+			for(var i in balls){
+				if(balls[i].pos.dist(initial) <= balls[i].radius){
+					initial.set(balls[i].pos.x,balls[i].pos.y);
+					selected = i;
+					drag = true;
+					break;
+				}
+			}
+		};
+		var mouseUp = function(e){
+			if(drag){
+				var v;
+				final.set(e.offsetX,e.offsetY);
+				drag = false;
+				v = EVector.diff(initial,final);
+				v.times_scalar(0.2);
+				balls[selected].setVelocity(v.x,v.y);
+			}
+		};
+
+		var mouseMove = function(e){
+			final.set(e.offsetX,e.offsetY);
+			v = EVector.diff(initial,final);
+			power = v.mag()*0.2;
+			if(power>MAX_POWER){
+				power = MAX_POWER;
+			}
+		};
+		window.setInterval(update,10);
+	</script>
+</body>
+</html>
