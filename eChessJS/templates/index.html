@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <title>eChess</title>
+  </head>
+  <body>
+    <p>Available Rooms</p>
+    <div>
+      {% for room in rooms %}
+      <a href="/room/{{room}}">Room{{room}}</a>
+      {% endfor %}
+    </div>
+    <form action="/room" method="POST"> 
+      <input type="submit" value="Create Room">
+    </form>
+  </body>
+</html>

@@ -1,0 +1,108 @@
+<html>
+  <head>
+    <title>eChess - Room{{room_number}} {{player}}</title>
+    <script src="/static/js/echess.js"></script>
+    <script src="/static/js/emenu.js"></script>
+  </head>
+  <body>
+    <canvas id="chessboard" width="500" height="500" onmousedown="mouseDown(event)" onmousemove="mouseMove(event)"></canvas>
+    <script>
+      var ctx = document.getElementById("chessboard").getContext("2d");
+      var dim = 500;
+
+      var echess = new chess();
+      var selected = [];
+      var myturn = false;
+      
+      var game_state = "menu"
+      var emenu = new chess_menu();
+      var selected_color = "";
+
+      var info = {};
+
+      info["room"] = "{{room_number}}";
+      info["player"] = "{{player}}";
+      
+      var host = window.location["host"];
+      var protocol = window.location["protocol"];
+      var uri = (protocol =="https:"? "wss":"ws") + "://" + host + "/pipe";
+      
+      var ws = new WebSocket(uri);
+
+      ws.onmessage = function(data){
+	  data = JSON.parse(data["data"]);
+	  if(data["cmd"] == "init"){
+	      info["cmd"] = "init";
+	      ws.send(JSON.stringify(info));
+	  }
+	  else if(data["cmd"] == "start_choosing"){
+	      emenu.set_state("choosing");
+	      emenu.draw(ctx,dim);
+	  }
+	  else if(data["cmd"] == "select_color"){
+	      emenu.select(data["data"]);
+	      emenu.draw(ctx,dim);
+	      if(!emenu.white_available && !emenu.black_available){
+		  game_state = "playing";
+		  echess.draw(ctx,dim);
+	      }
+	  }
+	  else if(data["cmd"] == "move"){
+	      myturn = true;
+	      echess.move(data["data"][0],data["data"][1]);
+	      echess.draw(ctx,dim);
+	  }
+      }
+
+      echess.init();
+      
+      window.onload = function(){
+	  emenu.draw(ctx,dim);
+      }
+      
+      function mouseDown(ev){
+	  if(game_state == "menu"){
+	      selected_color = emenu.click(ev.clientX,ev.clientY);
+	      if(selected_color != ""){
+		  info["cmd"] = "select_color"
+		  info["data"] = selected_color
+		  emenu.select(selected_color);
+		  emenu.set_state("waiting_game");
+		  emenu.draw(ctx,dim);
+		  if(selected_color == "white")
+		      myturn = true;
+		  ws.send(JSON.stringify(info));
+		  if(!emenu.white_available && !emenu.black_available){
+		      game_state = "playing";
+		      echess.draw(ctx,dim);
+		  }
+	      }
+	  }
+	  else if(game_state == "playing" && myturn){
+	      echess.select_square(ev.clientX,ev.clientY,dim);
+	      var piece = echess.get_piece(echess.selected);
+	      if(piece){
+		  if(piece.color != selected_color && selected.length == 0){
+		      echess.selected = "";
+		      return;
+		  }
+	      }
+	      selected.push(echess.selected);
+	      if(selected.length == 2){
+		  if(echess.move(selected[0],selected[1]) == SUCCESS){
+		      info["cmd"] = "move";
+		      info["data"] = selected;
+		      ws.send(JSON.stringify(info));
+		      myturn = false;
+		  }
+		  selected = [];
+	      }
+	      echess.draw(ctx,dim);
+	  }
+      }
+      function mouseMove(ev){
+
+      }
+    </script>
+  </body>
+</html>

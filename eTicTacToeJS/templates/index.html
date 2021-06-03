@@ -1,0 +1,159 @@
+<html>
+  <head>
+    <title>eTicTacToe</title>
+  </head>
+  <body>
+    <div id="menu-container">
+      <div id="rooms-container">
+	<ul id="rooms-list">
+	  {% for room in rooms%}
+	  <li><a href="#" onclick="join_room({{room}})">Room{{room}}</a></li>
+	  {% endfor %}
+      </div>
+      <button onclick="create_room()">Create room</button>
+      <button onclick="play_bot()">Play with bot</button>
+    </div>
+    <canvas id="mycanvas" style="display: none;" width="500" height="500" onmousedown="mouseMove(event)"></canvas>
+    <div id="game-options">
+      <a href="#" onclick="leave_room()">Leave Room</a>
+    </div>
+    <script src="/static/js/etictactoe.js"></script>
+    <script>
+      var mycanvas = document.getElementById("mycanvas");
+      var ctx = mycanvas.getContext("2d");
+
+      var board = new etictactoe();
+      var dim = 500;
+      var turn = 1;
+
+      var host = window.location["host"]
+      var protocol = window.location["protocol"]
+      var uri = (protocol == "https"?"wss" : "ws") + "://" + host + "/pipe";
+      var ws = new WebSocket(uri);
+
+      var info = {};
+      info["id"] = "{{player_id}}";
+
+      var game_started = false;
+
+      var rooms_list = document.getElementById("rooms-list");
+      var menu_container = document.getElementById("menu-container");
+      var game_options = document.getElementById("game-options");
+      var myturn = -1;
+
+      window.onload = function(){
+	  	game_options.style = "display:none";
+      }
+
+      ws.onmessage = function(message){
+	  var data = JSON.parse(message["data"]);
+	  if(data["cmd"] == "init"){
+	      info["cmd"] = "init";
+	      ws.send(JSON.stringify(info));
+	  }
+	  else if(data["cmd"] == "start"){
+	      game_started = true;
+	      board.draw_board(ctx,dim);
+	      myturn = data["turn"];
+	      menu_container.style = "display: none;";
+	      mycanvas.style = "display: block;";
+	      game_options.style = "display: block";
+	  }
+	  else if(data["cmd"] == "move"){
+	      var move = data["move"];
+	      board.set(turn,move[0],move[1]);
+	      turn = 1 + turn%2;
+	      board.draw_board(ctx,dim);
+	      board.draw_marks(ctx,dim);
+	      var winner = board.winner();
+	      if(winner == NO_WINNER){
+		  
+	      }
+	      else if(winner == DRAW){
+		  console.log("draw");
+		  board.clear();
+		  game_started = false;
+	      }
+	      else{
+		  console.log("win: " +board.winner());
+		  board.draw_winner(ctx,dim);
+		  board.clear();
+		  game_started = false;
+	      }
+	  }
+	  else if(data["cmd"] == "new_room"){
+	      rooms_list.innerHTML += "<li><a href='#' onclick='join_room(" + data["room"] +")'>Room" + data["room"] + "</a></li>";
+	  }
+	  else if(data["cmd"] == "error"){
+	      window.alert(data["msg"]);
+	  }
+	  else if(data["cmd"] == "leave_room"){
+	      game_started = false;
+	      window.alert("The other player left the room");
+	  }
+	  else if(data["cmd"] == "finish"){
+	      ws.close();
+	      window.location.replace("/");
+	  }
+      }
+      
+      board.draw_board(ctx,dim);
+      
+      function mouseMove(ev){
+	  if(game_started && turn == myturn){
+	      if(board.mark(turn,ev.clientX,ev.clientY,dim) == SUCCESS){
+		  turn = 1 + turn%2;
+		  info["cmd"] = "move";
+		  info["move"] = board.last_move;
+		  ws.send(JSON.stringify(info));
+	      }
+	      board.draw_board(ctx,dim);
+	      board.draw_marks(ctx,dim);
+
+	      var winner = board.winner();
+	      if(winner == NO_WINNER){
+		  
+	      }
+	      else if(winner == DRAW){
+		  console.log("draw");
+		  board.clear();
+		  game_started = false;
+	      }
+	      else{
+		  console.log("win: " +board.winner());
+		  board.draw_winner(ctx,dim);
+		  board.clear();
+		  game_started = false;
+	      }
+	  }
+      }
+      function create_room(){
+	  info["cmd"] = "room";
+	  info["mode"] = "vs";
+	  ws.send(JSON.stringify(info));
+	  menu_container.style = "display: none;";
+	  mycanvas.style = "display: block;"
+	  game_options.style = "display:block";
+      }
+      function play_bot(){
+	  info["cmd"] = "room";
+	  info["mode"] = "bot";
+	  ws.send(JSON.stringify(info));
+      }
+      function join_room(room_number){
+      	console.log("here")
+	  info["cmd"] = "join";
+	  info["room"] = room_number;
+	  ws.send(JSON.stringify(info));
+      }
+      function leave_room(){
+	  info["cmd"] = "leave_room";
+	  ws.send(JSON.stringify(info));
+	  game_options.style = "display:none";
+	  mycanvas.style = "display:none";
+	  menu_container.style = "display:block";
+	  game_started = false;
+      }
+    </script>
+  </body>
+</html>
