@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Snake</title>
+	<script type="text/javascript" src="snake.js"></script>
+</head>
+<body onkeydown="keyDown(event)">
+<canvas width="500" height="500" id="mycanvas" style="border: solid 2px"></canvas>
+<script type="text/javascript">
+	var ctx = document.getElementById("mycanvas").getContext("2d");
+	
+	var g = new EGame();
+	g.init();
+
+	var update = function(){
+		if(!g.loose()){
+			clearScreen(ctx);
+			drawBackground(ctx);
+			g.update();
+			g.draw(ctx);
+		}
+	};
+
+	var keyDown = function(e){
+		switch(e.key){
+			case "ArrowUp":
+			g.control(up);
+			break;
+			case "ArrowDown":
+			g.control(down);
+			break;
+			case "ArrowRight":
+			g.control(right);
+			break;
+			case "ArrowLeft":
+			g.control(left);
+			break;
+			default:
+			break;
+		}
+	};
+	window.setInterval(update,100);
+</script>
+</body>
+</html>
