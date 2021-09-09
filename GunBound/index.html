@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>GunBound</title>
+	<script type="text/javascript" src="gunbound.js"></script>
+</head>
+<body onkeydown="keyDown(event)" onkeyup="keyUp(event)">
+	<canvas width="500" height="500" id="mycanvas" style="border:solid 2px;"></canvas>
+	<script type="text/javascript">
+		var ctx = document.getElementById("mycanvas").getContext("2d");
+		setSize(500,500);
+		setMargin(0,0);
+
+		var left = new EVector(-2,0);
+		var right = new EVector(2,0);
+
+		var car = new ECar(new EVector(100,400),"#00FF00");
+		var bullets = [];
+		var g = new EVector(0,1);
+
+		var fun = function(x){
+			return MARGIN_Y + GAME_HEIGHT -100*Math.sin(Math.PI*x/GAME_WIDTH);
+		};
+
+		var ter = new ETerrain([]);
+		ter.generateFromFunction(fun,100);
+		var update = function(){
+			clearScreen(ctx);
+			car.update();
+			car.draw(ctx);
+			ter.draw(ctx);
+			ter.interact(car);
+			for(var i in bullets){
+				bullets[i].applyAcc(g);
+				bullets[i].update();
+				bullets[i].draw(ctx);
+			};
+			for(var i in bullets){
+				if(ter.collide(bullets[i])){
+					ter.impact(bullets[i].pos);
+					bullets.splice(i,1);
+					break;
+				}
+			}
+			for(var i in bullets){
+				if(bullets[i].outOfBounds()){
+					bullets.splice(i,1);
+					break;
+				}
+			};
+		};
+		var keyDown = function(e){
+			switch(e.key){
+				case "ArrowLeft":
+				car.applyAcc(left);
+				break;
+				case "ArrowRight":
+				car.applyAcc(right);
+				break;
+				case "ArrowUp":
+				car.increaseAngle();
+				break;
+				case "ArrowDown":
+				car.decreaseAngle();
+				break;
+				case " ":
+				bullets.push(car.shoot());
+				default:
+				break;
+			}
+		}
+		var keyUp = function(e){
+			car.setAcc(0,0);
+		}
+		window.setInterval(update,20);
+
+	</script>
+</body>
+</html>
